@@ -1,10 +1,17 @@
 package uet.oop.bomberman.entities.bomb;
 
 import uet.oop.bomberman.Board;
+import uet.oop.bomberman.Game;
+import uet.oop.bomberman.Sound;
 import uet.oop.bomberman.entities.AnimatedEntitiy;
 import uet.oop.bomberman.entities.Entity;
+import uet.oop.bomberman.entities.character.Bomber;
+import uet.oop.bomberman.entities.character.Character;
 import uet.oop.bomberman.graphics.Screen;
 import uet.oop.bomberman.graphics.Sprite;
+import uet.oop.bomberman.level.Coordinates;
+
+import java.io.File;
 
 public class Bomb extends AnimatedEntitiy {
 
@@ -12,7 +19,7 @@ public class Bomb extends AnimatedEntitiy {
 	public int _timeAfter = 20;
 	
 	protected Board _board;
-	protected Flame[] _flames;
+	protected Flame[] _flames = null;
 	protected boolean _exploded = false;
 	protected boolean _allowedToPassThru = true;
 	
@@ -73,11 +80,23 @@ public class Bomb extends AnimatedEntitiy {
      */
 	protected void explode() {
 		_exploded = true;
-		
 		// TODO: xử lý khi Character đứng tại vị trí Bomb
-		
+		Bomber bomber = _board.getBomber();
+		if (bomber.getXTile() == _x && bomber.getYTile() == _y) {
+			bomber.kill();
+		}
+
 		// TODO: tạo các Flame
+		_flames = new Flame[4];
+		for (int i = 0; i < _flames.length; i++) {
+			_flames[i] = new Flame((int)_x, (int)_y, i, Game.getBombRadius(), _board);
+		}
+
+		String path = new File("").getAbsolutePath() + "\\res\\sound\\explore.wav";
+		Sound soundBase = new Sound(path);
+		soundBase.play(0); //vòng lặp
 	}
+
 	
 	public FlameSegment flameAt(int x, int y) {
 		if(!_exploded) return null;
@@ -95,6 +114,21 @@ public class Bomb extends AnimatedEntitiy {
 	public boolean collide(Entity e) {
         // TODO: xử lý khi Bomber đi ra sau khi vừa đặt bom (_allowedToPassThru)
         // TODO: xử lý va chạm với Flame của Bomb khác
-        return false;
+		if(e instanceof Bomber) {
+			double diffX = e.getX() - Coordinates.tileToPixel(getX());
+			double diffY = e.getY() - Coordinates.tileToPixel(getY());
+
+				if(!(diffX >= -10 && diffX < 16 && diffY >= 1 && diffY <= 28)) { // differences to see if the player has moved out of the bomb, tested values
+				_allowedToPassThru = false;
+			}
+
+			return _allowedToPassThru;
+		}
+
+		if(e instanceof Flame) {
+			_timeToExplode = 0;
+			return true;
+		}
+		return false;
 	}
 }
